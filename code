@@ -1,0 +1,300 @@
+import pygame
+import sys
+
+# Inicializar o pygame
+pygame.init()
+
+# Definir variáveis globais para a linguagem e configurações
+linguagem = 'EN'
+full_screen = False
+resolucoes = [(1280, 720), (1920, 1080)]
+resolucao_atual = 0
+
+# Textos em diferentes linguagens
+textos = {
+    'EN': {
+        'title': 'Bakery Clicker',
+        'clicks': 'Clicks',
+        'store': 'Store',
+        'buy': 'Buy',
+        'close': 'Close',
+        'level': 'Level',
+        'cost': 'Cost',
+        'options': 'Options',
+        'resolution': 'Resolution',
+        'fullscreen': 'Fullscreen',
+        'language': 'Language'
+    },
+    'PT': {
+        'title': 'Padaria Clicker',
+        'clicks': 'Cliques',
+        'store': 'Loja',
+        'buy': 'Comprar',
+        'close': 'Fechar',
+        'level': 'Nível',
+        'cost': 'Custo',
+        'options': 'Opções',
+        'resolution': 'Resolução',
+        'fullscreen': 'Tela Cheia',
+        'language': 'Idioma'
+    },
+    'ES': {
+        'title': 'Panadería Clicker',
+        'clicks': 'Clics',
+        'store': 'Tienda',
+        'buy': 'Comprar',
+        'close': 'Cerrar',
+        'level': 'Nivel',
+        'cost': 'Costo',
+        'options': 'Opciones',
+        'resolution': 'Resolución',
+        'fullscreen': 'Pantalla Completa',
+        'language': 'Idioma'
+    }
+}
+
+# Configurar as cores
+branco = (255, 255, 255)
+preto = (0, 0, 0)
+cinza = (192, 192, 192)
+vermelho = (255, 0, 0)
+verde = (0, 255, 0)
+azul = (0, 0, 255)
+
+# Carregar e redimensionar imagens
+imagem_fundo = pygame.image.load('fundo_padaria.png')
+imagem_pao = pygame.image.load('pao.png')
+imagem_loja = pygame.image.load('loja.png')
+
+# Função para desenhar o texto
+def desenhar_texto(texto, fonte, cor, superficie, x, y):
+    textoobj = fonte.render(texto, True, cor)
+    textorect = textoobj.get_rect(center=(x, y))
+    superficie.blit(textoobj, textorect)
+
+# Função para desenhar o botão de fechar (X)
+def desenhar_botao_fechar(surface, x, y):
+    botao_rect = pygame.Rect(x, y, 30, 30)
+    pygame.draw.rect(surface, vermelho, botao_rect)
+    desenhar_texto("X", fonte_pequena, branco, surface, x + 15, y + 15)
+    return botao_rect
+
+# Função para exibir a janela de upgrades
+def exibir_janela_upgrade():
+    janela_largura, janela_altura = 600, 400
+    janela_rect = pygame.Rect((largura - janela_largura) // 2, (altura - janela_altura) // 2, janela_largura, janela_altura)
+    pygame.draw.rect(tela, cinza, janela_rect)
+
+    # Barra de progresso
+    barra_largura = 400
+    barra_altura = 30
+    barra_x = janela_rect.left + (janela_largura - barra_largura) // 2
+    barra_y = janela_rect.top + 150
+    progresso = nivel_atual / len(upgrades)
+    largura_preenchida = int(barra_largura * progresso)
+    pygame.draw.rect(tela, branco, (barra_x, barra_y, barra_largura, barra_altura))
+    pygame.draw.rect(tela, vermelho, (barra_x, barra_y, largura_preenchida, barra_altura))
+
+    # Texto da barra de progresso
+    if nivel_atual < len(upgrades):
+        proximo_upgrade = upgrades[nivel_atual]
+        texto_progresso = f"{textos[linguagem]['level']} {proximo_upgrade['nivel']} - {textos[linguagem]['cost']}: {proximo_upgrade['custo']}"
+    else:
+        texto_progresso = "Máximo nível alcançado"
+    desenhar_texto(texto_progresso, fonte_pequena, preto, tela, janela_rect.centerx, barra_y - 40)
+
+    # Botão de compra
+    botao_comprar_rect = pygame.Rect(barra_x, barra_y + 50, 100, 40)
+    pygame.draw.rect(tela, verde, botao_comprar_rect)
+    desenhar_texto(textos[linguagem]['buy'], fonte_pequena, branco, tela, botao_comprar_rect.centerx, botao_comprar_rect.centery)
+
+    # Desenhar botão de fechar
+    botao_fechar_rect = desenhar_botao_fechar(tela, janela_rect.right - 40, janela_rect.top + 10)
+    return botao_fechar_rect, botao_comprar_rect
+
+# Função para exibir a janela de opções
+def exibir_janela_opcoes():
+    janela_largura, janela_altura = 600, 400
+    janela_rect = pygame.Rect((largura - janela_largura) // 2, (altura - janela_altura) // 2, janela_largura, janela_altura)
+    pygame.draw.rect(tela, cinza, janela_rect)
+
+    # Opções de resolução
+    desenhar_texto(textos[linguagem]['resolution'], fonte_pequena, preto, tela, janela_rect.centerx, janela_rect.top + 50)
+    offset_y = 100
+    botoes_resolucao = []
+    for i, resolucao in enumerate(resolucoes):
+        botao_rect = pygame.Rect(janela_rect.left + 100, janela_rect.top + offset_y, 400, 40)
+        pygame.draw.rect(tela, branco, botao_rect)
+        desenhar_texto(f"{resolucao[0]}x{resolucao[1]}", fonte_pequena, preto, tela, botao_rect.centerx, botao_rect.centery)
+        botoes_resolucao.append(botao_rect)
+        offset_y += 50
+
+    # Opção de tela cheia
+    botao_fullscreen_rect = pygame.Rect(janela_rect.left + 100, janela_rect.top + offset_y, 400, 40)
+    pygame.draw.rect(tela, branco, botao_fullscreen_rect)
+    texto_fullscreen = textos[linguagem]['fullscreen'] + (f": {textos[linguagem]['yes']}" if full_screen else f": {textos[linguagem]['no']}")
+    desenhar_texto(texto_fullscreen, fonte_pequena, preto, tela, botao_fullscreen_rect.centerx, botao_fullscreen_rect.centery)
+
+    # Opção de idioma
+    desenhar_texto(textos[linguagem]['language'], fonte_pequena, preto, tela, janela_rect.centerx, botao_fullscreen_rect.bottom + 30)
+    botoes_idioma = []
+    idiomas = ['EN', 'PT', 'ES']
+    offset_y = botao_fullscreen_rect.bottom + 60
+    for idioma in idiomas:
+        botao_rect = pygame.Rect(janela_rect.left + 100, offset_y, 400, 40)
+        pygame.draw.rect(tela, branco, botao_rect)
+        desenhar_texto(textos[idioma]['language'], fonte_pequena, preto, tela, botao_rect.centerx, botao_rect.centery)
+        botoes_idioma.append(botao_rect)
+        offset_y += 50
+
+    # Desenhar botão de fechar
+    botao_fechar_rect = desenhar_botao_fechar(tela, janela_rect.right - 40, janela_rect.top + 10)
+    return botao_fechar_rect, botoes_resolucao, botao_fullscreen_rect, botoes_idioma
+
+# Função principal para iniciar o jogo
+def iniciar_jogo():
+    global largura, altura, tela, imagem_fundo, imagem_pao, imagem_loja, fonte, fonte_pequena, pontuacao, nivel_pao, upgrade_disponivel, nivel_atual, upgrades, full_screen, resolucao_atual, linguagem
+
+    # Configurar a tela
+    largura, altura = resolucoes[resolucao_atual]
+    tela = pygame.display.set_mode((largura, altura), pygame.FULLSCREEN if full_screen else 0)
+    pygame.display.set_caption(textos[linguagem]['title'])
+
+    # Configurar a fonte
+    fonte = pygame.font.SysFont('comicsansms', 48)
+    fonte_pequena = pygame.font.SysFont('comicsansms', 24)
+
+    # Inicializar a pontuação
+    pontuacao = 0
+    nivel_pao = 1  # Nível inicial do pão
+    upgrade_disponivel = False  # Controla se a janela de atualização está aberta
+    nivel_atual = 0  # Nível atual do upgrade
+
+    # Definir níveis de upgrade
+    upgrades = [
+        {"nivel": 1, "custo": 1000, "multiplicador": 2},
+        {"nivel": 2, "custo": 10000, "multiplicador": 4},
+        {"nivel": 3, "custo": 30000, "multiplicador": 6},
+        {"nivel": 4, "custo": 50000, "multiplicador": 8},
+        {"nivel": 5, "multiplicador": 10, "custo": 100000}
+    ]
+
+    # Redimensionar imagens
+    imagem_fundo = pygame.transform.scale(imagem_fundo, (largura, altura))
+    imagem_pao = pygame.transform.scale(imagem_pao, (150, 150))
+    imagem_pao_rect = imagem_pao.get_rect(center=(largura // 2, altura // 2))
+    imagem_loja = pygame.transform.scale(imagem_loja, (50, 50))
+    imagem_loja_rect = imagem_loja.get_rect(bottomleft=(10, altura - 10))
+
+    botao_opcoes_rect = pygame.Rect(largura - 60, 10, 50, 50)
+    opcoes_disponivel = False
+
+    while True:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button in [1, 3]:  # Apenas botões esquerdo (1) e direito (3)
+                    if imagem_pao_rect.collidepoint(evento.pos):
+                        pontuacao += 1 * nivel_pao
+                    elif imagem_loja_rect.collidepoint(evento.pos):
+                        upgrade_disponivel = not upgrade_disponivel
+                    elif botao_opcoes_rect.collidepoint(evento.pos):
+                        opcoes_disponivel = not opcoes_disponivel
+                    if upgrade_disponivel:
+                        janela_largura, janela_altura = 600, 400
+                        janela_rect = pygame.Rect((largura - janela_largura) // 2, (altura - janela_altura) // 2, janela_largura, janela_altura)
+                        if evento.pos[0] >= janela_rect.left and evento.pos[0] <= janela_rect.right and evento.pos[1] >= janela_rect.top and evento.pos[1] <= janela_rect.bottom:
+                            if evento.pos[0] > janela_rect.right - 40 and evento.pos[1] < janela_rect.top + 40:
+                                upgrade_disponivel = False
+                            elif nivel_atual < len(upgrades):
+                                proximo_upgrade = upgrades[nivel_atual]
+                                botao_fechar_rect, botao_comprar_rect = exibir_janela_upgrade()
+                                if botao_comprar_rect.collidepoint(evento.pos) and pontuacao >= proximo_upgrade['custo']:
+                                    pontuacao -= proximo_upgrade['custo']
+                                    nivel_pao = proximo_upgrade['multiplicador']
+                                    nivel_atual += 1
+                    if opcoes_disponivel:
+                        botao_fechar_rect, botoes_resolucao, botao_fullscreen_rect, botoes_idioma = exibir_janela_opcoes()
+                        if botao_fechar_rect.collidepoint(evento.pos):
+                            opcoes_disponivel = False
+                        for i, botao_rect in enumerate(botoes_resolucao):
+                            if botao_rect.collidepoint(evento.pos):
+                                resolucao_atual = i
+                                iniciar_jogo()
+                        if botao_fullscreen_rect.collidepoint(evento.pos):
+                            full_screen = not full_screen
+                            iniciar_jogo()
+                        for i, botao_rect in enumerate(botoes_idioma):
+                            if botao_rect.collidepoint(evento.pos):
+                                linguagem = idiomas[i]
+                                iniciar_jogo()
+
+        # Desenhar o fundo
+        tela.blit(imagem_fundo, (0, 0))
+
+        # Desenhar a imagem do pão
+        tela.blit(imagem_pao, imagem_pao_rect)
+
+        # Desenhar a pontuação acima da imagem do pão
+        desenhar_texto(f'{pontuacao}', fonte, preto, tela, imagem_pao_rect.centerx, imagem_pao_rect.top - 20)
+
+        # Desenhar o ícone da loja
+        tela.blit(imagem_loja, imagem_loja_rect)
+
+        # Desenhar o botão de opções
+        pygame.draw.rect(tela, azul, botao_opcoes_rect)
+        desenhar_texto('⚙', fonte_pequena, branco, tela, botao_opcoes_rect.centerx, botao_opcoes_rect.centery)
+
+        # Se a janela de upgrade estiver disponível, desenhá-la
+        if upgrade_disponivel:
+            exibir_janela_upgrade()
+
+        # Se a janela de opções estiver disponível, desenhá-la
+        if opcoes_disponivel:
+            exibir_janela_opcoes()
+
+        # Atualizar a tela
+        pygame.display.flip()
+
+# Tela de seleção de linguagem
+def selecionar_linguagem():
+    largura, altura = 800, 600
+    tela = pygame.display.set_mode((largura, altura))
+    pygame.display.set_caption('Selecionar Idioma / Select Language / Seleccionar Idioma')
+
+    fonte = pygame.font.SysFont('comicsansms', 48)
+    fonte_pequena = pygame.font.SysFont('comicsansms', 24)
+
+    idiomas = ['EN', 'PT', 'ES']
+    botoes_idioma = []
+
+    while True:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                for i, botao_rect in enumerate(botoes_idioma):
+                    if botao_rect.collidepoint(evento.pos):
+                        global linguagem
+                        linguagem = idiomas[i]
+                        iniciar_jogo()
+
+        tela.fill(cinza)
+
+        desenhar_texto('Selecionar Idioma / Select Language / Seleccionar Idioma', fonte_pequena, preto, tela, largura // 2, 50)
+        offset_y = 150
+        botoes_idioma = []
+        for idioma in idiomas:
+            botao_rect = pygame.Rect(largura // 2 - 100, offset_y, 200, 50)
+            pygame.draw.rect(tela, branco, botao_rect)
+            desenhar_texto(textos[idioma]['language'], fonte_pequena, preto, tela, botao_rect.centerx, botao_rect.centery)
+            botoes_idioma.append(botao_rect)
+            offset_y += 100
+
+        pygame.display.flip()
+
+# Iniciar a seleção de linguagem
+selecionar_linguagem()
